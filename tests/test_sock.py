@@ -1,3 +1,5 @@
+#  Copyright (c) 2020 SBA - MIT License
+
 import unittest
 from mockselector.selector import MockSocket, ListenSocket
 

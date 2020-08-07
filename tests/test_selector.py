@@ -1,3 +1,5 @@
+#  Copyright (c) 2020 SBA - MIT License
+
 import unittest
 from mockselector.selector import MockSocket, MockSelector, ListenSocket
 from selectors import EVENT_READ, EVENT_WRITE
@@ -37,7 +39,7 @@ class SelectorTestCase(unittest.TestCase):
     def test_two_clients(self):
         c1 = MockSocket([b'foo', b'quit'])
         c2 = MockSocket([b'foo', b'bar', b'baz', b'fee'])
-        s = ListenSocket([c1, c2])
+        s = ListenSocket((c1, c2))
         sel = MockSelector([s, c1, s, c2, c2, (c1, c2), c1, c2, c2])
         sel.register(s, EVENT_READ)
         s.bind(('localhost', 8888))

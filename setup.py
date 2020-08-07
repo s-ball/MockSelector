@@ -1,3 +1,5 @@
+#  Copyright (c) 2020 SBA - MIT License
+
 from setuptools import setup
 
 setup(

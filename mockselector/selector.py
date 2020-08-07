@@ -1,12 +1,14 @@
+#  Copyright (c) 2020 SBA - MIT License
+
 import selectors
 from selectors import SelectorKey, EVENT_READ
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Iterable
 from unittest.mock import Mock
 import socket
-from collections.abc import Iterable
+import collections.abc
 
 
-def _gen_uniq(start):
+def _gen_uniq(start: int):
     """ Helper to generate unique values.
 
     Example usage:
@@ -145,7 +147,7 @@ class MockSelector(selectors._BaseSelectorImpl):
             return []
         ev = self.event_list[self.current]
         self.current += 1
-        if not isinstance(ev, Iterable):
+        if not isinstance(ev, collections.abc.Iterable):
             ev = (ev,)
         try:
             if isinstance(ev[1], int):
