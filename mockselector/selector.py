@@ -29,6 +29,7 @@ def _gen_uniq(start: int):
         cr = i
         i = i + 1
         return cr
+
     return inner
 
 
@@ -46,6 +47,7 @@ class MockSocket(Mock):
 
     Different MockSocket objects will all have different fileno numbers.
     """
+
     def __new__(cls, *_args, **kwargs):
         obj = super().__new__(cls, socket.socket)
         return obj
@@ -58,18 +60,19 @@ class MockSocket(Mock):
         super().__init__(socket.socket)
         if recvs is None:
             recvs = []
-        self.recvs = list(recvs)
-        self.current = 0
+        self.recvs = iter(recvs)
         self._fileno = _gen_fd()
+        self.remain = ''
 
     def recv(self, size):
-        if self.current >= len(self.recvs):
-            return b''
-        data = self.recvs[self.current][:size]
-        if size < len(self.recvs[self.current]):
-            self.recvs[self.current] = self.recvs[self.current][size:]
+        if len(self.remain) > 0:
+            data = self.remain
         else:
-            self.current += 1
+            data = next(self.recvs, b'')
+        if size < len(data):
+            data, self.remain = data[:size], data[size:]
+        else:
+            self.remain = ''
         return data
 
     def fileno(self):
@@ -89,6 +92,7 @@ class ListenSocket:
     An OSError is raised if accept is used before bind and listen or if
     any call is used on a closed socket
     """
+
     def __init__(self, accepted: Iterable[MockSocket] = None):
         """
         :param accepted: Iterable of MockSocket objects to return
@@ -99,6 +103,12 @@ class ListenSocket:
         self.current = 0
         self.state = 0
         self._fileno = _gen_fd()
+        self.address = 'localhost'
+        self.remote_port = 57000
+
+    def _addr(self):
+        self.remote_port += 1
+        return self.address, self.remote_port
 
     def bind(self, _address):
         if not (self.state <= 1):
@@ -118,12 +128,13 @@ class ListenSocket:
             raise OSError
         c = self.accepted[self.current] if self.current < len(self.accepted) else MockSocket()
         self.current += 1
-        return c
+        return c, self._addr()
 
     def fileno(self):
         return self._fileno
 
 
+# noinspection PyProtectedMember
 class MockSelector(selectors._BaseSelectorImpl):
     """ BaseSelector subclass to help building tests on TCP servers.
 
@@ -137,16 +148,35 @@ class MockSelector(selectors._BaseSelectorImpl):
     - an iterable containing above objects or pair. In that case, select
     will return a corresponding list of (key, event) pairs
     """
-    def __init__(self, event_list=None):
-        self.event_list = [] if event_list is None else event_list
-        self.current = 0
+
+    class EndException(BaseException):
+        """ Internal exception raised when the event iterable is exhausted.
+
+        It is intended to allow a MockSelector to be used as a context manager
+        around an otherwise never ending loop: when the event iterable is
+        exhausted, the context block filters its own EndException and the
+        execution proceeds normally.
+        """
+        pass
+
+    def __init__(self, event_list: Iterable = None):
+        event_list = [] if event_list is None else event_list
+        self.iter_event = iter(event_list)
         super().__init__()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type == MockSelector.EndException and exc_val.args[0] is self:
+            return True
+        return False
+
     def select(self, _timeout: Optional[float] = ...) -> List[Tuple[SelectorKey, int]]:
-        if self.current >= len(self.event_list):
-            return []
-        ev = self.event_list[self.current]
-        self.current += 1
+        try:
+            ev = next(self.iter_event)
+        except StopIteration as e:
+            raise MockSelector.EndException(self) from e
         if not isinstance(ev, collections.abc.Iterable):
             ev = (ev,)
         try:

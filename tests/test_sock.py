@@ -1,7 +1,7 @@
 #  Copyright (c) 2020 SBA - MIT License
 
 import unittest
-from mockselector.selector import MockSocket, ListenSocket
+from mockselector import MockSocket, ListenSocket
 
 
 class TestListen(unittest.TestCase):
@@ -9,7 +9,7 @@ class TestListen(unittest.TestCase):
         sock = ListenSocket()
         sock.bind(('localhost', 80))
         sock.listen(5)
-        c = sock.accept()
+        c, _ = sock.accept()
         self.assertIsInstance(c, MockSocket)
 
     def test_child_list(self):
@@ -19,9 +19,9 @@ class TestListen(unittest.TestCase):
         sock = ListenSocket([c1, c2])
         sock.bind(('localhost', 80))
         sock.listen(5)
-        c = sock.accept()
+        c, _ = sock.accept()
         self.assertTrue(c is c1)
-        c = sock.accept()
+        c, _ = sock.accept()
         self.assertTrue(c is c2)
 
     def test_no_bind(self):
@@ -57,6 +57,7 @@ class TestMock(unittest.TestCase):
         self.assertEqual(b'', s.recv(256))
 
     def test_small_read(self):
+        # noinspection SpellCheckingInspection
         s = MockSocket([b'aa', b'abcdef', b'gh'])
         self.assertEqual(b'aa', s.recv(3))
         self.assertEqual(b'abc', s.recv(3))

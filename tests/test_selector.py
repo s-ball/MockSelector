@@ -1,10 +1,11 @@
 #  Copyright (c) 2020 SBA - MIT License
 
 import unittest
-from mockselector.selector import MockSocket, MockSelector, ListenSocket
+from mockselector import MockSocket, MockSelector, ListenSocket
 from selectors import EVENT_READ, EVENT_WRITE
 
 
+# noinspection PyUnresolvedReferences
 class SelectorTestCase(unittest.TestCase):
     def test_registry(self):
         c = MockSocket([b'foo'])
@@ -48,7 +49,7 @@ class SelectorTestCase(unittest.TestCase):
             for k, ev in sel.select():
                 sock = k.fileobj
                 if sock == s:
-                    c = sock.accept()
+                    c, _ = sock.accept()
                     sel.register(c, EVENT_READ)
                 else:
                     data = sock.recv(1024)
@@ -63,6 +64,71 @@ class SelectorTestCase(unittest.TestCase):
         s.close()
         sel.close()
         self.assertEqual([((b'foo',),)], c1.send.call_args_list)
+        self.assertEqual([((b'foo',),), ((b'bar',),), ((b'baz',),), ((b'fee',),)], c2.send.call_args_list)
+
+    def test_ctx_manager(self):
+        c1 = MockSocket([b'foo', b'quit'])
+        c2 = MockSocket([b'foo', b'bar', b'baz', b'fee'])
+        s = ListenSocket((c1, c2))
+        sel = MockSelector([s, c1, s, c2, c2, (c1, c2), c1, c2, c2])
+        with sel:
+            sel.register(s, EVENT_READ)
+            s.bind(('localhost', 8888))
+            s.listen(5)
+            while len(sel.get_map()) > 0:
+                for k, ev in sel.select():
+                    sock = k.fileobj
+                    if sock == s:
+                        c, _ = sock.accept()
+                        sel.register(c, EVENT_READ)
+                    else:
+                        data = sock.recv(1024)
+                        if len(data) == 0:
+                            sock.close()
+                            sel.unregister(sock)
+                        else:
+                            sock.send(data)
+        s.close()
+        sel.close()
+        self.assertEqual([((b'foo',),), ((b'quit',),)], c1.send.call_args_list)
+        self.assertEqual([((b'foo',),), ((b'bar',),), ((b'baz',),), ((b'fee',),)], c2.send.call_args_list)
+
+    def test_with_patch(self):
+        import socket
+        import selectors
+        from unittest.mock import patch
+        c1 = MockSocket([b'foo', b'quit'])
+        c2 = MockSocket([b'foo', b'bar', b'baz', b'fee'])
+        x = ListenSocket((c1, c2))
+        # noinspection SpellCheckingInspection
+        xsel = MockSelector([x, c1, x, c2, c2, (c1, c2), c1, c2, c2])
+        with patch('socket.socket') as sock, \
+                patch(f'selectors.DefaultSelector') as selector:
+            sock.return_value = x
+            selector.return_value = xsel
+            with xsel:
+                s = socket.socket()
+                sel = selectors.DefaultSelector()
+                self.assertEqual(xsel, sel)
+                sel.register(s, EVENT_READ)
+                s.bind(('localhost', 8888))
+                s.listen(5)
+                while len(sel.get_map()) > 0:
+                    for k, ev in sel.select():
+                        sock = k.fileobj
+                        if sock == s:
+                            c, _ = sock.accept()
+                            sel.register(c, EVENT_READ)
+                        else:
+                            data = sock.recv(1024)
+                            if len(data) == 0:
+                                sock.close()
+                                sel.unregister(sock)
+                            else:
+                                sock.send(data)
+                s.close()
+                sel.close()
+        self.assertEqual([((b'foo',),), ((b'quit',),)], c1.send.call_args_list)
         self.assertEqual([((b'foo',),), ((b'bar',),), ((b'baz',),), ((b'fee',),)], c2.send.call_args_list)
 
 
