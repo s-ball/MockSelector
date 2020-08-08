@@ -78,7 +78,7 @@ class MockSocket(Mock):
     def fileno(self):
         return self._fileno
 
-    def _get_child_mock(self, /, **kw):
+    def _get_child_mock(self, **kw):
         return Mock(**kw)
 
 
