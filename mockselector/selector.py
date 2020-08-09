@@ -1,8 +1,9 @@
 #  Copyright (c) 2020 SBA - MIT License
 
 import selectors
+from collections.abc import Callable
 from selectors import SelectorKey, EVENT_READ
-from typing import Optional, List, Tuple, Iterable
+from typing import Optional, List, Tuple, Iterable, Union
 from unittest.mock import Mock
 import socket
 import collections.abc
@@ -52,9 +53,10 @@ class MockSocket(Mock):
         obj = super().__new__(cls, socket.socket)
         return obj
 
-    def __init__(self, recvs: Iterable[bytes] = None):
+    def __init__(self, recvs: Iterable[Union[bytes, Callable]] = None):
         """
-        :param recvs: iterable of byte strings to be returned by recv calls
+        :param recvs: iterable of byte strings or callable returning byte
+         strings to be returned by recv calls
         :type recvs: Iterable[bytes]
         """
         super().__init__(socket.socket)
@@ -69,6 +71,8 @@ class MockSocket(Mock):
             data = self.remain
         else:
             data = next(self.recvs, b'')
+            if isinstance(data, Callable):
+                data = data()
         if size < len(data):
             data, self.remain = data[:size], data[size:]
         else:
@@ -85,21 +89,26 @@ class MockSocket(Mock):
 class ListenSocket:
     """ A class aimed at mocking listening TCP sockets.
 
-    It receives at creation time an iterable of MockSocket objects. They
-    will be returned in order by accept calls.
+    It receives at creation time an iterable of socket objects or callable
+    returning socket objects. They will be returned in order by accept calls.
+
+    As a special case, Mock objects are not processed as callable to allow
+    smooth handling of MockSocket or Mock(socket.socket) objects.
 
     A proper sequence bind -> listen -> accept, ... -> close is required.
     An OSError is raised if accept is used before bind and listen or if
     any call is used on a closed socket
     """
 
-    def __init__(self, accepted: Iterable[MockSocket] = None):
+    def __init__(self, accepted: Iterable[Union[socket.socket,
+                                                Callable]] = None):
         """
-        :param accepted: Iterable of MockSocket objects to return
-        in sequence when accept is called
-        :type accepted: Iterable[MockSocket]
+        :param accepted: Iterable of socket objects or callable returning
+        socket objects to return in sequence when accept is called
+        :type accepted: Iterable[socket.socket]
         """
-        self.accepted = [] if accepted is None else accepted
+        accepted = [] if accepted is None else accepted
+        self.accepted = iter(accepted)
         self.current = 0
         self.state = 0
         self._fileno = _gen_fd()
@@ -126,7 +135,9 @@ class ListenSocket:
     def accept(self):
         if not (self.state == 2):
             raise OSError
-        c = self.accepted[self.current] if self.current < len(self.accepted) else MockSocket()
+        c = next(self.accepted, MockSocket())
+        if isinstance(c, Callable) and not isinstance(c, Mock):
+            c = c()
         self.current += 1
         return c, self._addr()
 
@@ -140,13 +151,15 @@ class MockSelector(selectors._BaseSelectorImpl):
 
     A MockSelector object is created with an iterable of events that will
     be returned by its select method. Here an event can be:
-    - a ListenSocket or MockSocket object. The object should have been
+    - a ListenSocket or socket object. The object should have been
     registered at the time when select will return the event. The
     associated(key, event) tuple will use EVENT_READ
     - a 2-tuple containing an object as described above and the selector
     event (combination of EVENT_READ, EVENT_WRITE) to use
     - an iterable containing above objects or pair. In that case, select
-    will return a corresponding list of (key, event) pairs
+    will return a corresponding list of (key, event) pairs. As a special
+    case, an empty iterable will simulate a timeout on the selector by
+     returning an empty list.
     """
 
     class EndException(BaseException):

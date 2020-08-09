@@ -43,6 +43,17 @@ class TestListen(unittest.TestCase):
         with self.assertRaises(OSError):
             sock.accept()
 
+    def test_callable(self):
+        c1 = MockSocket()
+        c2 = MockSocket()
+        sock = ListenSocket([c1, lambda: c2])
+        sock.bind(('localhost', 80))
+        sock.listen(5)
+        c, _ = sock.accept()
+        self.assertTrue(c is c1)
+        c, _ = sock.accept()
+        self.assertTrue(c is c2)
+
 
 class TestMock(unittest.TestCase):
     def test_shut(self):
@@ -63,6 +74,13 @@ class TestMock(unittest.TestCase):
         self.assertEqual(b'abc', s.recv(3))
         self.assertEqual(b'def', s.recv(3))
         self.assertEqual(b'gh', s.recv(3))
+
+    def test_callable(self):
+        msgs = (b'a', lambda: b'bb', b'ccc')
+        s = MockSocket(msgs)
+        self.assertEqual(b'a', s.recv(256))
+        self.assertEqual(b'bb', s.recv(256))
+        self.assertEqual(b'ccc', s.recv(256))
 
 
 if __name__ == '__main__':

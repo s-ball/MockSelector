@@ -9,13 +9,15 @@ class MiniServer:
     """ Demo server using a DefaultSelector.
 
     It listen on a port, accepts clients and echoes the received data preceded
-    with 'GOT:'. It has no provision for a clean stop, and have to be killed
-    from an external action (for example a Ctrl-C)
+    with 'GOT:'. It has no true provision for a clean stop, and have to be killed
+    from an external action (for example a Ctrl-C). In fact it does implement a
+    sentinel flag bug still lack a way to change its value
     It is intended to demonstrate the test features of mockselector.
     """
 
     def __init__(self, port: int):
         self.port = port
+        self.stop = False
 
     def run(self):
         s = socket.socket()
@@ -23,7 +25,7 @@ class MiniServer:
         s.listen()
         sel = DefaultSelector()
         sel.register(s, EVENT_READ)
-        while True:
+        while not self.stop:
             for key, event in sel.select():
                 if key.fileobj == s:
                     c: socket
