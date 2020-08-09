@@ -3,12 +3,7 @@
 import unittest
 from unittest.mock import patch
 from mockselector import ListenSocket, MockSelector, MockSocket
-import sys
-import os.path
-
-current_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_path)
-# noinspection PyPep8
+# noinspection PyUnresolvedReferences
 import miniserv
 
 
