@@ -103,7 +103,7 @@ class SelectorTestCase(unittest.TestCase):
         # noinspection SpellCheckingInspection
         xsel = MockSelector([x, c1, x, c2, c2, (c1, c2), c1, c2, c2])
         with patch('socket.socket') as sock, \
-                patch(f'selectors.DefaultSelector') as selector:
+                patch('selectors.DefaultSelector') as selector:
             sock.return_value = x
             selector.return_value = xsel
             with xsel:

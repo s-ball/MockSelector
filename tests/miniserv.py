@@ -28,7 +28,6 @@ class MiniServer:
         while not self.stop:
             for key, event in sel.select():
                 if key.fileobj == s:
-                    c: socket
                     c, _ = s.accept()
                     sel.register(c, EVENT_READ)
                 else:
