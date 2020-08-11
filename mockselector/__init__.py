@@ -3,7 +3,7 @@
 from .selector import MockSelector, MockSocket, ListenSocket
 try:
     from .version import __version__
-except ModuleNotFoundError:
+except ImportError:
     # be conservative if version.py could not be generated
     # as it may happen on some CI platforms...
     __version__ = '0.0.0'
