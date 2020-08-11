@@ -9,8 +9,24 @@ input data
 
 ## Installation
 
-The current version is only available on Github. To use it, you must first
-get a local copy by downloading a zipfile or cloning the repository:
+### From PyPI
+
+Starting from 0.1.1, `mockselector` is available on PyPI. If you just want to
+use it in your projects, it is the recommended way:
+
+    pip install mockselector
+
+Of course, this can be done in a relevant venv if you do not want to have it
+in your main installation.
+
+Note: the `test` folder is only available in the source distribution.
+
+### From Github
+
+This is the recommended way if you want to contribute or simply tweak
+`mockselector` to your own requirements. You can get a local copy by
+downloading a zipfile but if you want to make changes, you should
+ rather clone the repository to have access to all `git` goodies:
 
     git clone https://github.com/s-ball/MockSelector.git
 
@@ -112,11 +128,11 @@ python -m unittest discover
 ```
 I will be glad to receive issues that would help to improve this project...
 
-## Disclaimer: alpha quality
+## Disclaimer: beta quality
 
 Even if the package has a nice test coverage, it currently only meets the
-requirement to test another project of mine. It might not be usable for
-your own project, or main contain Still Unidentified Bugs...
+requirement to test another project of mine. It might not meet your own
+requirements, or main contain Still Unidentified Bugs...
 
 It is still a 0.x version, so the API is not guaranteed to be stable.
 
