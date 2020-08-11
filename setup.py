@@ -1,7 +1,6 @@
 #  Copyright (c) 2020 SBA - MIT License
 
 from setuptools import setup
-import pkg_resources
 import os.path
 
 name = 'mockselector'
@@ -29,7 +28,7 @@ setup(
         'Topic :: Software Development :: Testing :: Mocking',
 
         # Pick your license as you wish (should match "license" above)
-         'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: MIT License',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.

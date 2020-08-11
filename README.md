@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/s-ball/MockSelector.svg?branch=master)](https://travis-ci.com/s-ball/MockSelector)
+
 # MockSelector
 
 ## Description
