@@ -2,15 +2,22 @@
 
 from setuptools import setup
 import os.path
-
 name = 'mockselector'
 wd = os.path.abspath(os.path.dirname(__file__))
+try:
+    from setuptools_scm import get_version
+    version = get_version(write_to=os.path.join(wd, name, 'version.py'))
+except (ModuleNotFoundError, LookupError):
+    version = '0.0.0'
+
 with open(os.path.join(wd, 'README.md')) as fd:
     long_description = fd.read()
-with open(os.path.join(wd, name, 'version.py')) as fd:
-    for line in fd:
-        if '__version__' in line:
-            version = line.split("'")[1]
+if version == '0.0.0':
+    with open(os.path.join(wd, name, 'version.py')) as fd:
+        for line in fd:
+            if line.startswith('version'):
+                version = line.split("'")[1]
+
 setup(
     name=name,
     version=version,

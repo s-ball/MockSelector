@@ -34,11 +34,37 @@ downloading a zipfile but if you want to make changes, you should
 
 You can then install it in your main Python installation or in a venv with:
 
-    python setup.py install
+    pip install -e .
 
 or on Windows with the launcher:
 
-    py setup.py install
+    py -m pip install -e .
+    
+`pip` should be used to install it for the first time in order to have
+`setuptools-scm` to generate the `version.py` file from git metadata.
+Once this is done, `setup.py` can be used with no special issue.
+
+Alternatively you can manually install `setuptools-scm`:
+
+    pip install setuptools-scm
+    python setup.py install
+
+#### Special handling of `version.py`:
+
+`mockselector` relies on `setuptools-scm` to automatically extract a
+version number from git metadata and store it in a `version.py` file
+for later use. The requires the availability of both `git` (which should
+not be a problem when the project is downloaded from Github), and
+`setuptools-scm`. If it fails because one is not available or because
+git metadata is not there (if you only downloaded a zip archive from
+Github), the version is set to 0.0.0
+
+For that reason, if you do not use git to dowload the sources, you
+should download a source distribution from PyPI, because the latter
+contains a valid `version.py`
+
+`pip` uses the `pyproject.toml` file with respect to PEP-518 and
+PEP-517 to know that `setuptools-scm` is required before the build.
 
 ## Basic use
 
@@ -132,9 +158,9 @@ I will be glad to receive issues that would help to improve this project...
 
 ## Disclaimer: beta quality
 
-Even if the package has a nice test coverage, it currently only meets the
-requirement to test another project of mine. It might not meet your own
-requirements, or main contain Still Unidentified Bugs...
+Even if the package has a nice test coverage (> 95%), it currently only
+contains what I need to test another project of mine. It might not meet
+your own requirements, or main contain Still Unidentified Bugs...
 
 It is still a 0.x version, so the API is not guaranteed to be stable.
 
