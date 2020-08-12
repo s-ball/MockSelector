@@ -59,7 +59,7 @@ not be a problem when the project is downloaded from Github), and
 git metadata is not there (if you only downloaded a zip archive from
 Github), the version is set to 0.0.0
 
-For that reason, if you do not use git to dowload the sources, you
+For that reason, if you do not use git to download the sources, you
 should download a source distribution from PyPI, because the latter
 contains a valid `version.py`
 
