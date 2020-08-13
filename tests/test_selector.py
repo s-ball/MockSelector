@@ -22,7 +22,7 @@ class SelectorTestCase(unittest.TestCase):
 
     def test_single(self):
         c = MockSocket([b'foo', b'bar'])
-        sel = MockSelector([c, c, c])
+        sel = MockSelector([c, (c, EVENT_READ), c])
         sel.register(c, EVENT_READ)
         while len(sel.get_map()) > 0:
             for k, ev in sel.select():
@@ -92,6 +92,24 @@ class SelectorTestCase(unittest.TestCase):
         sel.close()
         self.assertEqual([((b'foo',),), ((b'quit',),)], c1.send.call_args_list)
         self.assertEqual([((b'foo',),), ((b'bar',),), ((b'baz',),), ((b'fee',),)], c2.send.call_args_list)
+
+    def test_context_manager_normal_exit(self):
+        c = MockSocket([b'foo', b'bar'])
+        sel = MockSelector([c, c, c])
+        sel.register(c, EVENT_READ)
+        with sel:
+            while len(sel.get_map()) > 0:
+                for k, ev in sel.select():
+                    self.assertEqual(c, k.fileobj)
+                    data = k.fileobj.recv(256)
+                    if len(data) == 0:
+                        k.fileobj.close()
+                        sel.unregister(k.fileobj)
+                    else:
+                        k.fileobj.send(data)
+        c.close.assert_called_once_with()
+        self.assertEqual(2, c.send.call_count)
+        self.assertEqual([((b'foo',),), ((b'bar',),)], c.send.call_args_list)
 
     def test_with_patch(self):
         import socket
