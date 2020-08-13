@@ -13,7 +13,7 @@ version = '0.0.0'              # fallback value should never be used
 try:    # first from git using setuptools_scm
     from setuptools_scm import get_version
     version = get_version(write_to=os.path.join(wd, name, 'version.py'))
-except (ModuleNotFoundError, LookupError):
+except (ImportError, LookupError):
     try:  # else from a previous version.py
         with open(os.path.join(wd, name, 'version.py')) as fd:
             for line in fd:
