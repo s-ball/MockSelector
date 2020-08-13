@@ -6,8 +6,8 @@ python:
         - "3.8"
 before_install:
         - pip install setuptools-scm
-        - pip install codecov
+        - pip install coverage
 script:
-        - codecov run --source=mockselector -m unittest discover
+        - coverage run --source=mockselector -m unittest discover
 after_success: true
         - bash <(curl -s https://codecov.io/bash)
