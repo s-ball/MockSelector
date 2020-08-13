@@ -9,5 +9,5 @@ before_install:
         - pip install coverage
 script:
         - coverage run --source=mockselector -m unittest discover
-after_success: true
+after_success:
         - bash <(curl -s https://codecov.io/bash)
