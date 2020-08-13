@@ -2,21 +2,40 @@
 
 from setuptools import setup
 import os.path
+import re
+
+
 name = 'mockselector'
 wd = os.path.abspath(os.path.dirname(__file__))
-try:
+version = '0.0.0'              # fallback value should never be used
+
+# extract version number
+try:    # first from git using setuptools_scm
     from setuptools_scm import get_version
     version = get_version(write_to=os.path.join(wd, name, 'version.py'))
 except (ModuleNotFoundError, LookupError):
-    version = '0.0.0'
+    try:  # else from a previous version.py
+        with open(os.path.join(wd, name, 'version.py')) as fd:
+            for line in fd:
+                if line.startswith('version'):
+                    version = line.split("'")[1]
+    except OSError as e:
+        raise RuntimeError('Need either git+setuptools-scm or'
+                           ' version.py file') from e
 
+# read long description and adjust master with version for badges or links
+# only for release versions (x.y.z)
+release = re.compile(r'(\d+\.){0,2}\d+')
 with open(os.path.join(wd, 'README.md')) as fd:
-    long_description = fd.read()
-if version == '0.0.0':
-    with open(os.path.join(wd, name, 'version.py')) as fd:
-        for line in fd:
-            if line.startswith('version'):
-                version = line.split("'")[1]
+    if version == '0.0.0' or not release.match(version):
+        long_description = fd.read()
+    else:
+        lines = fd.readlines()
+        for i, line in enumerate(lines):
+            if not line.startswith('['):
+                break
+            lines[i] = line.replace('master', version)
+        long_description = ''.join(lines)
 
 setup(
     name=name,
