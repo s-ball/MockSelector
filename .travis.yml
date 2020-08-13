@@ -8,6 +8,6 @@ before_install:
         - pip install setuptools-scm
         - pip install codecov
 script:
-        - codecov --source=mockselector run -m unittest discover
+        - codecov run --source=mockselector -m unittest discover
 after_success: true
         - bash <(curl -s https://codecov.io/bash)
