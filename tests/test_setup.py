@@ -4,13 +4,14 @@ import sys
 import os.path
 import io
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import importlib
 
 ext_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 specials = {
     os.path.join(ext_path, 'README.md'):
-        '[foo(master)](bar)\nmaster\n',
+        '[foo(travis/branch=master?fee)](bar)\n[foo(codecov/branch/master)]'
+        '(bar)\nmaster\n',
     os.path.join(ext_path, 'mockselector', 'version.py'):
         "#foo\nversion = '3.2.1'\n"
 }
@@ -46,9 +47,27 @@ class TestSetup(unittest.TestCase):
         version.side_effect = TypeError
         self.assertEqual('3.2.1', setup.get_version())
 
-    def test_long_desc(self, _patcher):
-        self.assertEqual('[foo(1.2.3)](bar)\nmaster\n',
+    @patch('subprocess.run')
+    def test_long_desc_commit_ok(self, run, _patcher):
+        run.return_value = Mock(stdout='1234')
+        self.assertEqual('[foo(travis/branch=1.2.3?fee)](bar)\n'
+                         '[foo(codecov/commit/1234)](bar)\nmaster\n',
                          setup.get_long_desc('1.2.3'))
+
+    @patch('subprocess.run')
+    def test_long_desc_commit_ko(self, run, _patcher):
+        run.side_effect = OSError
+        self.assertEqual('[foo(travis/branch=1.2.3?fee)](bar)\n'
+                         '[foo(codecov/branch/master)](bar)\nmaster\n',
+                         setup.get_long_desc('1.2.3'))
+
+    @patch('subprocess.run')
+    def test_long_desc_no_rel(self, run, _patcher):
+        run.return_value = Mock(stdout='1234')
+        self.assertEqual('[foo(travis/branch=master?fee)](bar)\n'
+                         '[foo(codecov/branch/master)](bar)\nmaster\n',
+                         setup.get_long_desc('1.2.3-1-g1234'))
+        run.assert_not_called()
 
 
 if __name__ == '__main__':

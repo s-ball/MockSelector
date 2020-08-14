@@ -7,6 +7,7 @@ except ImportError:
     scm_version = None
 import os.path
 import re
+import subprocess
 
 
 name = 'mockselector'
@@ -30,11 +31,20 @@ def get_version() -> str:
     return _version
 
 
+def get_commit() -> str:
+    try:
+        p = subprocess.run('git show --format=%H -s', capture_output=True,
+                           check=True, shell=True, encoding='Latin1')
+    except (OSError, subprocess.CalledProcessError):
+        return ''
+    return p.stdout.strip()
+
+
 def get_long_desc(_version) -> str:
     """ read long description and adjust master with version for badges or links
     only for release versions (x.y.z)
     """
-    release = re.compile(r'(\d+\.){0,2}\d+')
+    release = re.compile(r'(\d+\.){0,2}\d+$')
     with open(os.path.join(wd, 'README.md')) as fd:
         if _version == '0.0.0' or not release.match(_version):
             _long_description = fd.read()
@@ -43,7 +53,13 @@ def get_long_desc(_version) -> str:
             for i, line in enumerate(lines):
                 if not line.startswith('['):
                     break
-                lines[i] = line.replace('master', _version)
+                if 'travis' in line:
+                    lines[i] = line.replace('master', _version)
+                elif 'codecov' in line:
+                    commit = get_commit()
+                    if commit != '':
+                        lines[i] = line.replace('branch/master',
+                                                'commit/' + commit)
             _long_description = ''.join(lines)
     return _long_description
 
