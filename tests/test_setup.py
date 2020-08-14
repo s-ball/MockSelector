@@ -4,73 +4,51 @@ import sys
 import os.path
 import io
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
+import importlib
+
+ext_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+specials = {
+    os.path.join(ext_path, 'README.md'):
+        '[foo(master)](bar)\nmaster\n',
+    os.path.join(ext_path, 'mockselector', 'version.py'):
+        "#foo\nversion = '3.2.1'\n"
+}
+sys.path.append(ext_path)
+setup = importlib.import_module('setup')
 
 
-def mock_open(special):
+def mock_open():
     _real_open = open
-    _specials = special
 
     def op(path, *args, **kwargs):
-        if path in _specials:
-            return io.StringIO(_specials[path])
+        if path in specials:
+            return io.StringIO(specials[path])
         return _real_open(path, *args, **kwargs)
 
-    def inner():
-        return op
-
-    return inner
+    return op
 
 
+@patch('builtins.open', new_callable=mock_open)
 class TestSetup(unittest.TestCase):
-    orig_path = sys.path
-    path = None
+    @patch.object(setup, 'scm_version')
+    def test_setup_version_scm(self, version, _patcher):
+        version.return_value = '1.2.3'
+        self.assertEqual('1.2.3', setup.get_version())
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        sys.path.append(os.path.dirname(cls.path))
-        cls.specials = {
-            os.path.join(cls.path, 'README.md'):
-                '[foo(master)](bar)\nmaster\n',
-            os.path.join(cls.path, 'mockselector', 'version.py'):
-                "#foo\nversion = '3.2.1'\n"
-        }
+    def test_sp_op_version(self, _patcher):
+        with open(os.path.join(ext_path, 'mockselector',
+                               'version.py')) as fd:
+            self.assertEqual(['#foo\n', "version = '3.2.1'\n"], list(fd))
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        sys.path = cls.orig_path
+    @patch.object(setup, 'scm_version')
+    def test_setup_version_file(self, version, _patcher):
+        version.side_effect = TypeError
+        self.assertEqual('3.2.1', setup.get_version())
 
-    def setUp(self) -> None:
-        self.setuptools = Mock()
-        self.setuptools_scm = Mock()
-        self.op = {}
-
-    def test_setup_version_scm(self):
-        self.setuptools_scm.get_version.return_value = '1.2.3'
-        with patch.dict('sys.modules', setuptools=self.setuptools, setuptools_scm=self.setuptools_scm):
-            import setup
-        self.assertEqual('1.2.3', setup.version)
-
-    def test_sp_op_version(self):
-        with patch('builtins.open', new_callable=mock_open(self.specials)):
-            with open(os.path.join(self.__class__.path, 'mockselector', 'version.py')) as fd:
-                self.assertEqual(['#foo\n', "version = '3.2.1'\n"], list(fd))
-
-    def test_setup_version_file(self):
-        self.setuptools_scm.get_version.return_value = None
-        self.setuptools_scm.get_version.side_effect = LookupError
-        with patch.dict('sys.modules', setuptools=self.setuptools, setuptools_scm=self.setuptools_scm):
-            with patch('builtins.open', new_callable=mock_open(self.specials)):
-                import setup
-        self.assertEqual('3.2.1', setup.version)
-
-    def test_long_desc(self):
-        self.setuptools_scm.get_version.return_value = '1.2.3'
-        with patch.dict('sys.modules', setuptools=self.setuptools, setuptools_scm=self.setuptools_scm):
-            with patch('builtins.open', new_callable=mock_open(self.specials)):
-                import setup
-        self.assertEqual('[foo(1.2.3)](bar)\nmaster\n', setup.long_description)
+    def test_long_desc(self, _patcher):
+        self.assertEqual('[foo(1.2.3)](bar)\nmaster\n',
+                         setup.get_long_desc('1.2.3'))
 
 
 if __name__ == '__main__':
