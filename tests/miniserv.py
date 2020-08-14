@@ -5,6 +5,7 @@ import socket
 import sys
 
 
+# noinspection PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences
 class MiniServer:
     """ Demo server using a DefaultSelector.
 
